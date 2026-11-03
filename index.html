@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Gökyüzü Treni - 5 İstasyonlu Genel Kültür Macerası</title>
+  <!-- Nunito Rounded Font (Duolingo Typography) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Three.js r128 & GLTFLoader -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <!-- 3D Canvas -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Interface (Duolingo Tactile Style) -->
+  <div id="hud">
+    <!-- Top Left: Category & Question Editor Button -->
+    <div class="top-left-controls">
+      <button id="btn-open-editor" class="hud-pill-btn">
+        <span class="pill-icon">🦉</span>
+        <span id="current-book-label">Kategori: <strong>Genel Kültür & Bilim</strong></span>
+        <span class="pill-badge">Soruları Düzenle ⚙️</span>
+      </button>
+    </div>
+
+    <!-- Top Center: Duolingo Progress Bar with 5 Station Markers -->
+    <div class="top-bar">
+      <div class="level-indicator" id="level-title">🌟 GÖKYÜZÜ EKSPRESİ — 5 İSTASYONLU GENEL KÜLTÜR MACERASI</div>
+      <div class="progress-container">
+        <span class="progress-label">BAŞLANGIÇ</span>
+        <div class="progress-bar-bg">
+          <div id="progress-bar-fill">
+            <div class="progress-bar-shine"></div>
+          </div>
+          <!-- 5 Station Pins -->
+          <div class="station-pin" style="left: 18%;" title="1. İstasyon">1</div>
+          <div class="station-pin" style="left: 36%;" title="2. İstasyon">2</div>
+          <div class="station-pin" style="left: 54%;" title="3. İstasyon">3</div>
+          <div class="station-pin" style="left: 74%;" title="4. İstasyon">4</div>
+          <div class="station-pin" style="left: 99%;" title="5. İstasyon: Büyük Terminal">🏆</div>
+          <div id="progress-cart-icon">🚂</div>
+        </div>
+        <span class="progress-label">TERMİNAL</span>
+      </div>
+    </div>
+
+    <!-- Center: Danger Warning -->
+    <div id="danger-warning" class="hidden">
+      <div class="warning-icon">⚠️</div>
+      <div class="warning-text">KESKİN VİRAJ! YAVAŞLA!</div>
+    </div>
+
+    <!-- Bottom Left: Duolingo Card Speedometer & G-Force -->
+    <div class="bottom-left">
+      <div class="speedometer-card">
+        <div class="speed-value"><span id="speed-text">0</span> <small>km/s</small></div>
+        <div class="speed-gauge-bar">
+          <div id="speed-gauge-fill"></div>
+        </div>
+        <div class="gforce-container">
+          <span>Viraj:</span>
+          <div class="gforce-meter">
+            <div id="gforce-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Right: Controls Hint -->
+    <div class="bottom-right">
+      <div class="controls-card desktop-only">
+        <div><kbd>W</kbd> / <kbd>▲</kbd> Hızlan</div>
+        <div><kbd>S</kbd> / <kbd>▼</kbd> Fren Yap</div>
+        <div><kbd>R</kbd> Yeniden Başlat</div>
+        <div><kbd>C</kbd> Kamera Açısı</div>
+      </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div class="mobile-controls">
+      <button id="btn-brake" class="touch-btn brake-btn">🛑 FREN</button>
+      <button id="btn-gas" class="touch-btn gas-btn">⚡ GAZ</button>
+    </div>
+  </div>
+
+  <!-- DUOLINGO STYLE CHECKPOINT QUESTION MODAL -->
+  <div id="station-modal" class="modal-overlay hidden">
+    <div class="modal-card station-card">
+      <!-- Top Lesson Header -->
+      <div class="station-header">
+        <span class="station-badge" id="modal-station-badge">🚩 1. İSTASYON (1/5)</span>
+        <div class="station-book-tag">🌍 Paket: <strong id="modal-book-title">Genel Kültür & Bilim</strong></div>
+      </div>
+
+      <div class="station-body">
+        <div class="gate-warning-banner" id="modal-banner-text">✨ Doğru cevabı seçerek yeşil makastan ana hatta ilerle!</div>
+
+        <!-- Duolingo Mascot & Speech Bubble Prompt -->
+        <div class="duo-prompt-row">
+          <div class="duo-mascot-avatar" title="Makinist Baykuş">🦉</div>
+          <div class="duo-speech-bubble">
+            <h3 id="modal-question-text" class="question-text">Soru metni buraya gelecek...</h3>
+          </div>
+        </div>
+        
+        <!-- Multiple Choice Options (A, B, C, D) -->
+        <div id="modal-options-container" class="options-container">
+          <!-- Dynamically generated Duolingo tactile buttons -->
+        </div>
+
+        <!-- Hint or feedback message -->
+        <div id="modal-hint-box" class="hint-box hidden">
+          <span class="hint-icon">💡</span>
+          <span id="modal-hint-text">İpucu: Tekrar dikkatlice düşün!</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUOLINGO STYLE 5-QUESTION & CATEGORY EDITOR MODAL -->
+  <div id="editor-modal" class="modal-overlay hidden">
+    <div class="modal-card editor-card">
+      <div class="editor-header">
+        <h2>🦉 5 Soruluk Genel Kültür Paketi Editörü</h2>
+        <p>Hazır 5 soruluk genel kültür paketlerinden birini seçebilir veya kendi sorularınızı yazabilirsiniz.</p>
+        
+        <!-- Quick Preset Dropdown -->
+        <div class="preset-selector">
+          <label for="select-preset">🎯 Hazır Soru Paketi Seç:</label>
+          <select id="select-preset">
+            <option value="genel_kultur">🌍 Genel Kültür & Bilim (Varsayılan)</option>
+            <option value="cografya_dunya">🗺️ Türkiye & Dünya Coğrafyası</option>
+            <option value="uzay_doga">🚀 Uzay, Bilim & Doğa Harikaları</option>
+            <option value="tarih_kesifler">🏛️ Tarih, İcatlar & Sanat</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="editor-form-scrollable">
+        <div class="form-group">
+          <label for="input-book-title">🏷️ Soru Paketi Başlığı:</label>
+          <input type="text" id="input-book-title" value="Genel Kültür & Bilim">
+        </div>
+
+        <!-- Section 1 -->
+        <div class="editor-station-block">
+          <h4>1. İstasyon Sorusu (1/5)</h4>
+          <input type="text" id="input-q1-text" class="q-input" placeholder="1. İstasyon sorusu...">
+          <div class="options-grid">
+            <div class="opt-row"><span class="opt-letter">A</span><input type="text" id="input-q1-opt0"><input type="radio" name="q1-correct" value="0"></div>
+            <div class="opt-row"><span class="opt-letter">B</span><input type="text" id="input-q1-opt1"><input type="radio" name="q1-correct" value="1" checked></div>
+            <div class="opt-row"><span class="opt-letter">C</span><input type="text" id="input-q1-opt2"><input type="radio" name="q1-correct" value="2"></div>
+            <div class="opt-row"><span class="opt-letter">D</span><input type="text" id="input-q1-opt3"><input type="radio" name="q1-correct" value="3"></div>
+          </div>
+        </div>
+
+        <!-- Section 2 -->
+        <div class="editor-station-block">
+          <h4>2. İstasyon Sorusu (2/5)</h4>
+          <input type="text" id="input-q2-text" class="q-input" placeholder="2. İstasyon sorusu...">
+          <div class="options-grid">
+            <div class="opt-row"><span class="opt-letter">A</span><input type="text" id="input-q2-opt0"><input type="radio" name="q2-correct" value="0"></div>
+            <div class="opt-row"><span class="opt-letter">B</span><input type="text" id="input-q2-opt1"><input type="radio" name="q2-correct" value="1"></div>
+            <div class="opt-row"><span class="opt-letter">C</span><input type="text" id="input-q2-opt2"><input type="radio" name="q2-correct" value="2" checked></div>
+            <div class="opt-row"><span class="opt-letter">D</span><input type="text" id="input-q2-opt3"><input type="radio" name="q2-correct" value="3"></div>
+          </div>
+        </div>
+
+        <!-- Section 3 -->
+        <div class="editor-station-block">
+          <h4>3. İstasyon Sorusu (3/5)</h4>
+          <input type="text" id="input-q3-text" class="q-input" placeholder="3. İstasyon sorusu...">
+          <div class="options-grid">
+            <div class="opt-row"><span class="opt-letter">A</span><input type="text" id="input-q3-opt0"><input type="radio" name="q3-correct" value="0" checked></div>
+            <div class="opt-row"><span class="opt-letter">B</span><input type="text" id="input-q3-opt1"><input type="radio" name="q3-correct" value="1"></div>
+            <div class="opt-row"><span class="opt-letter">C</span><input type="text" id="input-q3-opt2"><input type="radio" name="q3-correct" value="2"></div>
+            <div class="opt-row"><span class="opt-letter">D</span><input type="text" id="input-q3-opt3"><input type="radio" name="q3-correct" value="3"></div>
+          </div>
+        </div>
+
+        <!-- Section 4 -->
+        <div class="editor-station-block">
+          <h4>4. İstasyon Sorusu (4/5)</h4>
+          <input type="text" id="input-q4-text" class="q-input" placeholder="4. İstasyon sorusu...">
+          <div class="options-grid">
+            <div class="opt-row"><span class="opt-letter">A</span><input type="text" id="input-q4-opt0"><input type="radio" name="q4-correct" value="0"></div>
+            <div class="opt-row"><span class="opt-letter">B</span><input type="text" id="input-q4-opt1"><input type="radio" name="q4-correct" value="1" checked></div>
+            <div class="opt-row"><span class="opt-letter">C</span><input type="text" id="input-q4-opt2"><input type="radio" name="q4-correct" value="2"></div>
+            <div class="opt-row"><span class="opt-letter">D</span><input type="text" id="input-q4-opt3"><input type="radio" name="q4-correct" value="3"></div>
+          </div>
+        </div>
+
+        <!-- Section 5 -->
+        <div class="editor-station-block">
+          <h4>5. İstasyon: Büyük Terminal Sorusu (5/5)</h4>
+          <input type="text" id="input-q5-text" class="q-input" placeholder="5. İstasyon sorusu...">
+          <div class="options-grid">
+            <div class="opt-row"><span class="opt-letter">A</span><input type="text" id="input-q5-opt0"><input type="radio" name="q5-correct" value="0"></div>
+            <div class="opt-row"><span class="opt-letter">B</span><input type="text" id="input-q5-opt1"><input type="radio" name="q5-correct" value="1"></div>
+            <div class="opt-row"><span class="opt-letter">C</span><input type="text" id="input-q5-opt2"><input type="radio" name="q5-correct" value="2" checked></div>
+            <div class="opt-row"><span class="opt-letter">D</span><input type="text" id="input-q5-opt3"><input type="radio" name="q5-correct" value="3"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="editor-actions">
+        <button id="btn-close-editor" class="text-btn">İPTAL</button>
+        <button id="btn-save-questions" class="action-btn">💾 KAYDET VE BAŞLAT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DUOLINGO STYLE GAME OVER / VICTORY MODAL -->
+  <div id="game-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-mascot-badge" id="modal-mascot-icon">🏆</div>
+      <h2 id="modal-title">GÖREV TAMAMLANDI!</h2>
+      <p id="modal-desc">Tebrikler! Tüm soruları doğru yanıtladın.</p>
+      <div class="modal-stats">
+        <div class="stat-box">
+          <span class="stat-label">MAKS HIZ</span>
+          <span class="stat-val"><span id="stat-max-speed">0</span> km/s</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">İLERLEME</span>
+          <span class="stat-val" id="stat-progress">100%</span>
+        </div>
+      </div>
+      <button id="btn-restart" class="action-btn">TEKRAR OYNA (R)</button>
+    </div>
+  </div>
+
+  <!-- Audio unlock banner -->
+  <div id="audio-prompt">
+    <span>🔊 Tren sesi için ekrana tıkla veya W tuşuna bas</span>
+  </div>
+
+  <!-- Scripts -->
+  <script src="audio.js"></script>
+  <script src="track.js"></script>
+  <script src="cart.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
